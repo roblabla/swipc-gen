@@ -557,6 +557,18 @@ def dump_ipc_filename(fname):
 				process_functions.append(DEFAULT_LOAD_BASE + process_function)
 				s_tables.append(DEFAULT_LOAD_BASE + s_table)
 
+		# 5.x: match on the "SFCI" constant used in the template of s_Table
+		#   MOV  W?, #0x4653
+		#   MOVK W?, #0x4943, LSL#16
+		if not s_tables:
+			regex = '|'.join(re.escape(chr(0x60 | i) + '\xCA\x88\x52' + chr(0x60 | i) + '\x28\xA9\x72') for i in range(29))
+			for i in re.finditer(regex, text_string):
+				if i.start() & 3: continue
+				idx = bisect.bisect(candidates, (i.start(), 0))
+				process_function, s_table = candidates[idx-1]
+				if text_string.index('\xC0\x03\x5F\xD6', process_function) > i.start():
+					process_functions.append(DEFAULT_LOAD_BASE + process_function)
+					s_tables.append(DEFAULT_LOAD_BASE + s_table)
 
 	process_name = f.get_name()
 	if process_name is None:
